@@ -685,7 +685,6 @@ async function applyFilters() {
 async function loadStaticCharts() {
   try {
     // Detratores por região
-    const regioes = await get('/detratores-regiao');
     const regioes = await get('/api/detratores-regiao');
     new Chart(document.getElementById('chartRegiao'), {
       type: 'bar',
@@ -706,7 +705,6 @@ async function loadStaticCharts() {
     });
 
     // Volume por loja
-    const volLojas = await get('/volume-lojas');
     const volLojas = await get('/api/volume-lojas');
     const renderVolLojas = (id, data, color) => {
       const c = document.getElementById(id);
@@ -723,7 +721,6 @@ async function loadStaticCharts() {
     renderVolLojas('vol-bot', volLojas.bot5, '#A1A1AA');
 
     // Flag comparison
-    const flags = await get('/flag-comparison');
     const flags = await get('/api/flag-comparison');
     const flagRow = document.getElementById('flag-row');
     ['REGULAR','TOCADORA'].forEach(f => {
@@ -739,7 +736,6 @@ async function loadStaticCharts() {
     });
 
     // Temas BERTopic
-    const temas = await get('/temas');
     const temas = await get('/api/temas');
     const temasF = temas.filter(t => t.categoria !== 'Outros/Inclassificável').sort((a,b) => b.pct - a.pct);
     new Chart(document.getElementById('chartTemas'), {
@@ -761,7 +757,6 @@ async function loadStaticCharts() {
     });
 
     // Comprimento médio
-    const comp = await get('/comprimento-comentarios');
     const comp = await get('/api/comprimento-comentarios');
     const ordem = ['detrator','neutro','promotor'];
     const compOrdenado = ordem.map(c => comp.find(x => x.classificacao === c));
@@ -790,7 +785,6 @@ async function loadStaticCharts() {
     });
 
     // Cobertura de comentários
-    const cobertura = await get('/cobertura-comentarios');
     const cobertura = await get('/api/cobertura-comentarios');
     const cobOrder = ['detrator','neutro','promotor'];
     const cobColors = { detrator:'#EF4444', neutro:'#EAB308', promotor:'#22C55E' };
