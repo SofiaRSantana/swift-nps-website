@@ -664,10 +664,10 @@ async function applyFilters() {
   const p = filterParams();
   try {
     const [bn, mensal, vol, ranking] = await Promise.all([
-      get('/big-numbers', p),
-      get('/nps-mensal',  p),
-      get('/volume-mensal', p),
-      get('/ranking-lojas', p),
+      get('/api/big-numbers', p),
+      get('/api/nps-mensal',  p),
+      get('/api/volume-mensal', p),
+      get('/api/ranking-lojas', p),
     ]);
     renderBN(bn);
     renderNpsMensal(mensal);
