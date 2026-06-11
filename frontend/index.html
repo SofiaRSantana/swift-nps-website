@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Swift NPS Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+:root {
+  --orange: #D4600A; --orange-2: #F07820; --orange-pale: #FFF3EB;
+  --brown: #7A3006; --green: #22C55E; --yellow: #EAB308; --red: #EF4444;
+  --bg: #F4F4F6; --surface: #FFFFFF; --border: #E4E4E7;
+  --text: #18181B; --muted: #71717A;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+/* ── HEADER ── */
+header {
+  background: #fff; border-bottom: 1px solid var(--border);
+  padding: 0 70px; height: 56px; display: flex; align-items: center; gap: 32px;
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.logo { font-size: 15px; font-weight: 700; color: var(--orange); letter-spacing: -.4px; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); display: inline-block; }
+.logo span { color: var(--text); font-weight: 500; }
+nav { display: flex; gap: 2px; }
+nav button {
+  background: none; border: none; cursor: pointer;
+  padding: 6px 14px; font-size: 13px; font-weight: 500; font-family: inherit;
+  color: var(--muted); border-radius: 8px; transition: all .15s; position: relative;
+}
+nav button::after {
+  content: ''; position: absolute; bottom: -1px; left: 14px; right: 14px;
+  height: 2px; border-radius: 1px; background: var(--orange); transform: scaleX(0); transition: transform .15s;
+}
+nav button:hover { color: var(--text); background: var(--bg); }
+nav button.active { color: var(--orange); font-weight: 600; }
+nav button.active::after { transform: scaleX(1); }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 10px 70px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.filter-bar label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.filter-select, .filter-input {
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px; background: var(--bg); color: var(--text);
+  cursor: pointer; outline: none; transition: border .15s;
+}
+.filter-select:focus, .filter-input:focus { border-color: var(--orange); }
+.filter-divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+.filter-reset {
+  font-family: inherit; font-size: 12px; font-weight: 600; color: var(--muted);
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; transition: all .15s;
+}
+.filter-reset:hover { background: var(--bg); color: var(--text); }
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--orange-pale); color: var(--orange); border: 1px solid #f0c090;
+  border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: opacity .15s;
+}
+.filter-chip:hover { opacity: .8; }
+.filter-chip.active { background: var(--orange); color: #fff; border-color: var(--orange); }
+
+/* ── LAYOUT ── */
+.page { display: none; padding: 20px 70px; }
+.page.active { display: block; }
+
+/* ── SUBTABS ── */
+.subtab-bar { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 0; }
+.subtab-bar button {
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  background: none; border: none; cursor: pointer;
+  padding: 8px 16px; color: var(--muted); border-radius: 8px 8px 0 0;
+  transition: all .15s; position: relative; margin-bottom: -2px;
+}
+.subtab-bar button:hover { color: var(--text); }
+.subtab-bar button.active { color: var(--orange); font-weight: 600; border-bottom: 2px solid var(--orange); }
+.subtab-panel { display: none; }
+.subtab-panel.active { display: block; }
+
+/* ── PAGE HEADER ── */
+.page-header { margin-bottom: 20px; }
+.page-header h1 { font-size: 20px; font-weight: 700; letter-spacing: -.4px; }
+.page-header p  { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+/* ── GRID ── */
+.grid { display: grid; gap: 16px; }
+.g4  { grid-template-columns: repeat(4,1fr); }
+.g3  { grid-template-columns: repeat(3,1fr); }
+.g2  { grid-template-columns: repeat(2,1fr); }
+.g21 { grid-template-columns: 2fr 1fr; align-items: start; }
+.gap { margin-top: 16px; }
+
+/* ── CARD ── */
+.card { background: var(--surface); border-radius: 14px; padding: 18px 20px; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.card-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .7px; color: var(--muted); margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ── KPI ── */
+.kpi { padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.kpi-val { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+.kpi-val.orange { color: var(--orange); }
+.kpi-val.green  { color: var(--green); }
+.kpi-val.red    { color: var(--red); }
+.kpi-val.blue   { color: #3B82F6; }
+.kpi-sub  { font-size: 12px; color: var(--muted); margin-top: 5px; }
+.kpi-ring { display: flex; align-items: center; gap: 12px; justify-content: center; }
+
+/* ── RING ── */
+.ring { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+.ring svg { transform: rotate(-90deg); }
+.ring-val { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; color: var(--orange); }
+
+/* ── BADGE ── */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.b-green  { background: #DCFCE7; color: #166534; }
+.b-red    { background: #FEE2E2; color: #991B1B; }
+.b-orange { background: var(--orange-pale); color: var(--orange); }
+
+/* ── PROGRESS BAR ── */
+.pb-wrap { margin: 5px 0; }
+.pb-row  { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+.pb      { height: 5px; border-radius: 3px; background: #E4E4E7; overflow: hidden; }
+.pb-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+
+/* ── RANK TABLE ── */
+.rt       { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rt thead tr { border-bottom: 1px solid var(--border); }
+.rt th    { padding: 6px 8px; text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.rt td    { padding: 9px 8px; border-bottom: 1px solid #F4F4F6; }
+.rt tr:last-child td { border: none; }
+.rt-bar   { display: inline-block; height: 4px; border-radius: 2px; vertical-align: middle; margin-left: 6px; }
+
+
+
+/* ── FLAG CARDS ── */
+.flag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; }
+.flag-card { border-radius: 12px; padding: 16px 18px; border: 1px solid var(--border); }
+.flag-card.regular  { border-top: 3px solid var(--orange); }
+.flag-card.tocadora { border-top: 3px solid var(--brown); }
+.flag-name { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+.flag-nps  { font-size: 30px; font-weight: 800; letter-spacing: -1px; color: var(--orange); margin: 4px 0; }
+.flag-sub  { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+/* ── SENTIMENT PAGE ── */
+.s-hero { background: linear-gradient(120deg,#FFF7F0 0%,#fff 60%); border: 1px solid #fdd9bb; border-radius: 14px; padding: 24px 28px; margin-bottom: 20px; }
+.s-hero h2 { font-size: 17px; font-weight: 700; color: var(--orange); margin-bottom: 6px; }
+.s-hero p  { font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+.dec-card { border-left: 3px solid var(--orange); background: var(--surface); border-radius: 0 12px 12px 0; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.dec-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.dec-card p, .dec-card li { font-size: 13px; color: var(--muted); line-height: 1.7; }
+.dec-card ul { padding-left: 18px; margin: 6px 0; }
+.stat-pill { display: inline-flex; align-items: center; background: var(--orange-pale); color: var(--orange); border-radius: 20px; padding: 3px 11px; font-size: 12px; font-weight: 600; margin: 3px 3px 3px 0; }
+.dt { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; border-radius: 10px; overflow: hidden; }
+.dt th { background: var(--orange-pale); color: var(--orange); padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.dt td { padding: 8px 12px; border-bottom: 1px solid #F4F4F6; }
+.dt tr:last-child td { border: none; }
+
+/* ── CLUSTER PAGE ── */
+.c-hero { background: linear-gradient(120deg,#FFF7F0 0%,#fff 60%); border: 1px solid #fdd9bb; border-radius: 14px; padding: 24px 28px; margin-bottom: 20px; }
+.c-hero h2 { font-size: 17px; font-weight: 700; color: var(--brown); margin-bottom: 6px; }
+.c-hero p  { font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+.metrics { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.m-box   { flex: 1; min-width: 120px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; text-align: center; }
+.m-val   { font-size: 26px; font-weight: 800; color: var(--orange); letter-spacing: -1px; }
+.m-lbl   { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+.kappa-box { background: linear-gradient(135deg, var(--orange), var(--brown)); color: #fff; border-radius: 14px; padding: 20px 24px; display: flex; align-items: center; gap: 20px; margin-bottom: 16px; }
+.kappa-n { font-size: 46px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+.kappa-t h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.kappa-t p  { font-size: 13px; opacity: .88; line-height: 1.6; }
+.step-list { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.step   { display: flex; gap: 14px; }
+.step-n { min-width: 32px; height: 32px; border-radius: 50%; background: var(--orange); color: #fff; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+.step-b h4 { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.step-b p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.cat-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-top: 12px; }
+.cat-card { border-radius: 12px; padding: 14px 16px; border: 1px solid var(--border); transition: box-shadow .15s, transform .15s; }
+.cat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+.cat-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.cat-name { font-size: 13px; font-weight: 700; }
+.cat-pct  { font-size: 20px; font-weight: 800; color: var(--orange); letter-spacing: -.5px; }
+.cat-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.cat-kws  { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.cat-kw   { background: var(--orange-pale); color: var(--orange); border-radius: 6px; padding: 2px 7px; font-size: 11px; font-weight: 500; }
+.dec-block { padding: 13px 16px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+
+/* ── LOADING / ERROR ── */
+.skeleton { background: linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 8px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.error-msg { color: var(--red); font-size: 12px; padding: 8px; }
+
+@media (max-width: 860px) {
+  .g4, .g3 { grid-template-columns: repeat(2,1fr); }
+  .g21, .g2 { grid-template-columns: 1fr; }
+  .cat-grid, .flag-grid { grid-template-columns: 1fr; }
+  .page { padding: 14px 16px; }
+  header, .filter-bar { padding-left: 16px; padding-right: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo"><span class="logo-dot"></span>Swift<span> NPS Analytics</span></div>
+  <nav>
+    <button class="active" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button onclick="showPage('sentimento',this)">Análise de Sentimento</button>
+    <button onclick="showPage('cluster',this)">Clusterização</button>
+  </nav>
+</header>
+
+<!-- FILTER BAR -->
+<div class="filter-bar" id="filterBar">
+  <label>Filtros</label>
+  <div class="filter-divider"></div>
+  <label>Período</label>
+  <input type="month" id="filterDateFrom" class="filter-input" value="2025-01" min="2025-01" max="2026-05"/>
+  <span style="font-size:12px;color:var(--muted);">até</span>
+  <input type="month" id="filterDateTo"   class="filter-input" value="2026-05" min="2025-01" max="2026-05"/>
+  <div class="filter-divider"></div>
+  <label>Gerente</label>
+  <div style="display:flex;gap:6px;">
+    <div class="filter-chip active" id="chip-all" onclick="setFlag('all')">Todos</div>
+    <div class="filter-chip" id="chip-reg"        onclick="setFlag('REGULAR')">Regular</div>
+    <div class="filter-chip" id="chip-toc"        onclick="setFlag('TOCADORA')">Tocadora</div>
+  </div>
+  <div class="filter-divider"></div>
+  <button class="filter-reset" onclick="resetFilters()">Limpar</button>
+</div>
+
+<!-- ======================================================= DASHBOARD -->
+<div id="dashboard" class="page active">
+  <div class="page-header">
+    <h1>Dashboard NPS</h1>
+    <p id="subtitle-period">Base completa · Jan 2025 – Mai 2026 · 228 lojas Swift</p>
+  </div>
+
+  <div class="subtab-bar">
+    <button class="active" onclick="showSubtab('metricas',this)">Métricas Gerais</button>
+    <button onclick="showSubtab('comentarios',this)">Análise de Comentários</button>
+  </div>
+
+  <!-- ── MÉTRICAS GERAIS ── -->
+  <div id="metricas" class="subtab-panel active">
+    <div class="grid g4">
+      <div class="card kpi">
+        <div class="card-label">NPS Geral</div>
+        <div class="kpi-val orange" id="bn-nps">–</div>
+        <div class="kpi-sub">% líquido (P − D) / Total</div>
+      </div>
+      <div class="card kpi">
+        <div class="card-label">Total de Avaliações</div>
+        <div class="kpi-val blue" id="bn-total">–</div>
+        <div class="kpi-sub" id="bn-lojas">– lojas ativas</div>
+      </div>
+      <div class="card kpi">
+        <div class="card-label">Promotores</div>
+        <div class="kpi-val green" id="bn-prom">–</div>
+        <div class="kpi-sub">das avaliações</div>
+      </div>
+      <div class="card kpi">
+        <div class="card-label">Detratores</div>
+        <div class="kpi-val red" id="bn-det">–</div>
+        <div class="kpi-sub">das avaliações</div>
+      </div>
+    </div>
+
+    <div class="grid g21 gap">
+      <div class="card" id="card-nps-mensal" style="overflow:hidden;">
+        <div class="card-label">Média do NPS ao longo dos meses <span class="badge b-orange">Linha</span></div>
+        <canvas id="chartNpsMensal" height="75"></canvas>
+      </div>
+      <div class="card" id="card-dist" style="overflow:hidden; display:flex; flex-direction:column;">
+        <div class="card-label">Distribuição Geral</div>
+        <div style="flex:1; min-height:0;">
+          <canvas id="chartDist"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g2 gap">
+      <div class="card">
+        <div class="card-label">Distribuição por Período — Promotor / Neutro / Detrator</div>
+        <canvas id="chartStacked" height="140"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-label">Volume de Avaliações ao longo do Tempo</div>
+        <canvas id="chartVolMensal" height="140"></canvas>
+      </div>
+    </div>
+
+    <div class="grid g2 gap">
+      <div class="card">
+        <div class="card-label">Top 5 Melhores por NPS <span class="badge b-green">Benchmark 70+</span></div>
+        <table class="rt"><thead><tr><th>#</th><th>Loja</th><th>NPS</th><th></th></tr></thead><tbody id="rank-top"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-label">5 Piores por NPS <span class="badge b-red">Atenção</span></div>
+        <table class="rt"><thead><tr><th>#</th><th>Loja</th><th>NPS</th><th></th></tr></thead><tbody id="rank-bot"></tbody></table>
+      </div>
+    </div>
+
+    <div class="grid g2 gap">
+      <div class="card">
+        <div class="card-label">Detratores por Região (%)</div>
+        <canvas id="chartRegiao" height="200"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-label">Volume de Avaliações por Loja</div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Mais avaliadas</div>
+          <div id="vol-top"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Menos avaliadas</div>
+          <div id="vol-bot"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card gap">
+      <div class="card-label">Comparativo: Regular vs. Tocadora de Negócios</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">REGULAR = gerentes mercado geral &nbsp;·&nbsp; TOCADORA = gerentes business Germinare</p>
+      <div class="flag-grid" id="flag-row"></div>
+    </div>
+  </div>
+
+  <!-- ── ANÁLISE DE COMENTÁRIOS ── -->
+  <div id="comentarios" class="subtab-panel">
+
+    <div class="grid g2">
+      <div class="card">
+        <div class="card-label">Distribuição por Temas (BERTopic)</div>
+        <canvas id="chartTemas" height="230"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-label">Comprimento Médio dos Comentários — por Classificação</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Detratores tendem a escrever comentários mais longos e detalhados que promotores.</p>
+        <canvas id="chartComprimento" height="160"></canvas>
+      </div>
+    </div>
+
+    <div class="card gap">
+      <div class="card-label">Cobertura de Comentários por Classificação</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">% de avaliações acompanhadas de comentário de texto.</p>
+      <div id="cobertura-bars"></div>
+      <div style="margin-top:20px;padding:14px;background:var(--orange-pale);border-radius:10px;font-size:12.5px;color:var(--text);line-height:1.6;" id="cobertura-insight"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======================================================= SENTIMENTO -->
+<div id="sentimento" class="page">
+  <div class="page-header"><h1>Análise de Sentimento</h1><p>Decisões de projeto para o modelo de classificação — Entrega 1</p></div>
+  <div class="s-hero">
+    <h2>Primeira Entrega — Definição da Análise de Sentimento</h2>
+    <p>As decisões a seguir foram definidas pelo grupo. O dashboard final será alimentado pelo modelo de avaliação de sentimento — se o modelo aprender errado, o resultado final será inconsistente. Critérios claros são, portanto, indispensáveis.</p>
+  </div>
+  <div class="dec-card">
+    <h3>1. Granularidade dos Sentimentos</h3>
+    <p>O grupo optou pela <strong>abordagem ternária</strong>, classificando os comentários em três classes: Promotor, Neutro e Detrator.</p>
+    <div style="margin:10px 0;"><span class="stat-pill">Promotores 81,92%</span><span class="stat-pill">Neutros 11,68%</span><span class="stat-pill">Detratores 6,40%</span></div>
+    <p>Há volume expressivo da classe neutra — suficiente para o modelo distinguir clientes indiferentes dos demais. A abordagem ternária é coerente com a metodologia NPS original.</p>
+    <table class="dt" style="margin-top:14px;">
+      <tr><th>Abordagem</th><th>Classes</th><th>Decisão</th></tr>
+      <tr><td>Binária</td><td>Positivo / Negativo</td><td>❌ Descartada — perde nuance dos neutros</td></tr>
+      <tr style="background:var(--orange-pale);"><td><strong>Ternária ✓</strong></td><td><strong>Positivo / Neutro / Negativo</strong></td><td><strong>✅ Adotada</strong></td></tr>
+      <tr><td>Quíntupla</td><td>5 classes</td><td>❌ Descartada — volume desproporcional</td></tr>
+    </table>
+  </div>
+  <div class="dec-card">
+    <h3>2. Nota vs. Texto — Fonte do Ground Truth</h3>
+    <p>Abordagem escolhida: <strong>intermediária</strong> — nota NPS como fonte primária + reclassificação manual dos casos discordantes.</p>
+    <ul><li><strong>Promotor com texto negativo</strong> (nota 9–10, palavras como "péssimo", "horrível")</li><li><strong>Detrator com texto positivo</strong> (nota 0–6, palavras como "ótimo", "parabéns")</li></ul>
+    <table class="dt" style="margin-top:12px;">
+      <tr><th>Tipo</th><th>Quantidade</th></tr>
+      <tr><td>Promotores com texto negativo</td><td><strong>5.496</strong></td></tr>
+      <tr><td>Detratores com texto positivo</td><td><strong>718</strong></td></tr>
+      <tr><td><strong>Total divergentes</strong></td><td><strong>6.214</strong></td></tr>
+    </table>
+  </div>
+  <div class="dec-card">
+    <h3>3. Tratamento de Comentários Mistos</h3>
+    <p>Classificados pelo <strong>sentimento dominante</strong>. Comentários mistos representam apenas <strong>0,3% — 627 casos</strong>.</p>
+    <ul><li>Maioria positiva → <strong>Promotor</strong></li><li>Empate → <strong>Neutro</strong></li></ul>
+  </div>
+  <div class="card">
+    <div class="card-label">Resumo das Decisões</div>
+    <div class="grid g3" style="margin-top:12px;gap:10px;">
+      <div style="text-align:center;padding:18px;background:var(--orange-pale);border-radius:12px;"><div style="font-size:20px;font-weight:800;color:var(--orange);">Ternária</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Granularidade</div></div>
+      <div style="text-align:center;padding:18px;background:#ECFDF5;border-radius:12px;"><div style="font-size:20px;font-weight:800;color:#166534;">Nota + Texto</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Ground truth</div></div>
+      <div style="text-align:center;padding:18px;background:#EEF2FF;border-radius:12px;"><div style="font-size:20px;font-weight:800;color:#3730A3;">Dominante</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Comentários mistos</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= CLUSTERIZAÇÃO -->
+<div id="cluster" class="page">
+  <div class="page-header"><h1>Clusterização</h1><p>Descoberta automática de temas via BERTopic — Entrega 1</p></div>
+  <div class="c-hero">
+    <h2>Método A — Clusterização Orientada por Dados (BERTopic)</h2>
+    <p>Os dados revelaram quais temas existem através de clusterização semântica. BERTopic usa embeddings contextuais + HDBSCAN, superando TF-IDF + K-Means que não distinguem contexto semântico.</p>
+  </div>
+  <div class="metrics">
+    <div class="m-box"><div class="m-val">50k</div><div class="m-lbl">Comentários processados</div></div>
+    <div class="m-box"><div class="m-val">30</div><div class="m-lbl">Tópicos descobertos</div></div>
+    <div class="m-box"><div class="m-val">7</div><div class="m-lbl">Categorias finais (K=8)</div></div>
+    <div class="m-box"><div class="m-val">0,929</div><div class="m-lbl">Topic Diversity</div></div>
+    <div class="m-box"><div class="m-val">30,9%</div><div class="m-lbl">Outliers</div></div>
+  </div>
+  <div class="kappa-box">
+    <div class="kappa-n">κ = 0,975</div>
+    <div class="kappa-t">
+      <h4>Concordância Excelente entre Anotadores</h4>
+      <p>250 comentários anotados de forma independente. 246/250 concordâncias (98,4%). κ ≥ 0,8 indica dataset confiável — taxonomia aprovada para treino supervisionado na Entrega 2.</p>
+    </div>
+  </div>
+  <div class="card gap">
+    <div class="card-label">Pipeline Metodológico</div>
+    <div class="step-list">
+      <div class="step"><div class="step-n">1</div><div class="step-b"><h4>Embedding Contextual</h4><p>Modelo <code>paraphrase-multilingual-MiniLM-L12-v2</code> — vetores de 384 dimensões por comentário.</p></div></div>
+      <div class="step"><div class="step-n">2</div><div class="step-b"><h4>Redução de Dimensionalidade (UMAP)</h4><p>384 → 5 dimensões. n_neighbors=15, metric=cosine.</p></div></div>
+      <div class="step"><div class="step-n">3</div><div class="step-b"><h4>Clusterização (HDBSCAN)</h4><p>min_cluster_size=300. Separa outliers automaticamente no tópico −1.</p></div></div>
+      <div class="step"><div class="step-n">4</div><div class="step-b"><h4>Representação (c-TF-IDF)</h4><p>K=8 (7 tópicos reais) apresentou melhor Topic Diversity (0,929).</p></div></div>
+      <div class="step"><div class="step-n">5</div><div class="step-b"><h4>Anotação + Validação Kappa</h4><p>254 comentários anotados independentemente. κ = 0,975.</p></div></div>
+    </div>
+  </div>
+  <div class="card gap">
+    <div class="card-label">Categorias Definidas <span class="badge b-orange">7 temas</span></div>
+    <div class="cat-grid" id="category-grid"></div>
+  </div>
+  <div class="card gap">
+    <div class="card-label">Decisões Obrigatórias</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+      <div class="dec-block" style="background:var(--orange-pale);"><strong>Single-label:</strong> mediana 9 palavras; casos multi-tema &lt;5% da amostra.</div>
+      <div class="dec-block" style="background:#F0F9FF;"><strong>Inclassificáveis:</strong> categoria "Outros/Inclassificável" (30,9%).</div>
+      <div class="dec-block" style="background:#F5F0FF;"><strong>Volume baixo:</strong> Marca Swift, Canal Digital e Elogios Gerais mantidas com class_weight='balanced'.</div>
+    </div>
+  </div>
+  <div class="card gap">
+    <div class="card-label">Distribuição dos Comentários por Categoria</div>
+    <canvas id="chartClusters" height="115"></canvas>
+  </div>
+  <div class="card gap">
+    <div class="card-label">Experimentação — K Testados</div>
+    <table class="dt" style="margin-top:10px;">
+      <tr><th>K real</th><th>Topic Diversity</th><th>Outliers %</th><th>Observação</th></tr>
+      <tr><td>30</td><td>0,783</td><td>30,9%</td><td>Original — granulares, redundantes</td></tr>
+      <tr style="background:var(--orange-pale);"><td><strong>7 ✓</strong></td><td><strong>0,929</strong></td><td>30,9%</td><td><strong>✅ Escolhido</strong></td></tr>
+      <tr><td>9</td><td>0,922</td><td>30,9%</td><td>Próximo, menos parcimonioso</td></tr>
+      <tr><td>11</td><td>0,827</td><td>30,9%</td><td>Diversidade cai</td></tr>
+      <tr><td>14</td><td>0,764</td><td>30,9%</td><td>Redundância alta</td></tr>
+      <tr><td>19</td><td>0,789</td><td>30,9%</td><td>Fragmentação excessiva</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+
+// ── DIAGNÓSTICO INICIAL ───────────────────────────────────────────────────────
+fetch('/api/big-numbers')
+  .then(r => r.json())
+  .then(d => console.log('✅ API OK:', d))
+  .catch(e => {
+    console.error('❌ API falhou:', e);
+    document.body.insertAdjacentHTML('afterbegin',
+      `<div style="background:#fee2e2;color:#991b1b;padding:12px 70px;font-family:Inter,sans-serif;font-size:13px;font-weight:600;">
+        ❌ Não foi possível conectar à API. Certifique-se de que o servidor está rodando em localhost:5050 e recarregue a página.
+      </div>`
+    );
+  });
+const charts = {};
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function fmt(n)  { return (+n).toLocaleString('pt-BR'); }
+function fmtP(n) { return (+n).toFixed(1) + '%'; }
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+async function get(endpoint, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${API}${endpoint}${qs ? '?' + qs : ''}`);
+  if (!res.ok) throw new Error(`${endpoint} falhou`);
+  return res.json();
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('filterBar').style.display = id === 'dashboard' ? 'flex' : 'none';
+}
+
+function showSubtab(id, btn) {
+  document.querySelectorAll('.subtab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.subtab-bar button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── FILTROS ───────────────────────────────────────────────────────────────────
+let activeFlag = 'all', dateFrom = '2025-01', dateTo = '2026-05';
+
+function setFlag(f) {
+  activeFlag = f;
+  ['all','reg','toc'].forEach(k => document.getElementById('chip-'+k).classList.remove('active'));
+  const map = { all:'all', REGULAR:'reg', TOCADORA:'toc' };
+  document.getElementById('chip-' + map[f]).classList.add('active');
+  applyFilters();
+}
+function resetFilters() {
+  activeFlag = 'all'; dateFrom = '2025-01'; dateTo = '2026-05';
+  document.getElementById('filterDateFrom').value = dateFrom;
+  document.getElementById('filterDateTo').value   = dateTo;
+  ['all','reg','toc'].forEach(k => document.getElementById('chip-'+k).classList.remove('active'));
+  document.getElementById('chip-all').classList.add('active');
+  applyFilters();
+}
+document.getElementById('filterDateFrom').addEventListener('change', e => { dateFrom = e.target.value; applyFilters(); });
+document.getElementById('filterDateTo').addEventListener('change',   e => { dateTo   = e.target.value; applyFilters(); });
+
+function filterParams() {
+  const p = { from: dateFrom, to: dateTo };
+  if (activeFlag !== 'all') p.flag = activeFlag;
+  return p;
+}
+
+// ── RENDER BIG NUMBERS ────────────────────────────────────────────────────────
+function renderBN(bn) {
+  document.getElementById('bn-nps').textContent   = bn.nps_geral + '%';
+  document.getElementById('bn-total').textContent = fmt(bn.total_avaliacoes);
+  document.getElementById('bn-lojas').textContent = bn.total_lojas + ' lojas ativas';
+  document.getElementById('bn-prom').textContent  = fmtP(bn.pct_promotor);
+  document.getElementById('bn-det').textContent   = fmtP(bn.pct_detrator);
+  const flag = activeFlag === 'all' ? 'Todos os gerentes' : activeFlag === 'REGULAR' ? 'Gerentes Regular' : 'Gerentes Tocadora';
+  document.getElementById('subtitle-period').textContent = `${dateFrom} – ${dateTo} · ${flag} · ${bn.total_lojas} lojas`;
+}
+
+// ── RENDER NPS LINE ───────────────────────────────────────────────────────────
+function renderNpsMensal(data) {
+  destroyChart('npsMensal');
+  charts.npsMensal = new Chart(document.getElementById('chartNpsMensal'), {
+    type: 'line',
+    data: {
+      labels: data.map(x => x.label),
+      datasets: [{ label: 'NPS %', data: data.map(x => x.nps),
+        borderColor: '#D4600A', backgroundColor: 'rgba(212,96,10,.07)',
+        fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#D4600A', borderWidth: 2 }]
+    },
+    options: {
+      plugins: { legend: { display: false }, datalabels: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11, family:'Inter' }, maxRotation: 45 } },
+        y: { grid: { color: '#F4F4F6' }, ticks: { callback: v => v + '%', font: { family:'Inter' } } }
+      }
+    }
+  });
+}
+
+// ── RENDER DONUT ──────────────────────────────────────────────────────────────
+function renderDist(bn) {
+  destroyChart('dist');
+  charts.dist = new Chart(document.getElementById('chartDist'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Promotores', 'Neutros', 'Detratores'],
+      datasets: [{ data: [bn.pct_promotor, bn.pct_neutro, bn.pct_detrator],
+        backgroundColor: ['#22C55E','#EAB308','#EF4444'], borderWidth: 3, borderColor: '#fff' }]
+    },
+    options: {
+      cutout: '58%',
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 12, family:'Inter' }, padding: 14 } },
+        datalabels: {
+          display: true, color: '#18181B',
+          font: { size: 13, weight: '700', family:'Inter' },
+          formatter: v => v.toFixed(1) + '%',
+          textShadowBlur: 4, textShadowColor: 'rgba(0,0,0,.35)',
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+}
+
+// ── RENDER STACKED ────────────────────────────────────────────────────────────
+function renderStacked(data) {
+  destroyChart('stacked');
+  charts.stacked = new Chart(document.getElementById('chartStacked'), {
+    type: 'bar',
+    data: {
+      labels: data.map(x => x.label),
+      datasets: [
+        { label: 'Promotor', data: data.map(x => x.pct_promotor), backgroundColor: '#22C55E', borderRadius: 2 },
+        { label: 'Neutro',   data: data.map(x => x.pct_neutro),   backgroundColor: '#EAB308', borderRadius: 2 },
+        { label: 'Detrator', data: data.map(x => x.pct_detrator), backgroundColor: '#EF4444', borderRadius: 2 },
+      ]
+    },
+    options: {
+      plugins: { legend: { position: 'top', labels: { font: { family:'Inter', size:12 } } }, datalabels: { display: false } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { maxRotation: 45, font: { size:11, family:'Inter' } } },
+        y: { stacked: true, max: 100, ticks: { callback: v => v+'%', font: { family:'Inter' } }, grid: { color:'#F4F4F6' } }
+      }
+    }
+  });
+}
+
+// ── RENDER VOL MENSAL ─────────────────────────────────────────────────────────
+function renderVol(data) {
+  destroyChart('vol');
+  charts.vol = new Chart(document.getElementById('chartVolMensal'), {
+    type: 'bar',
+    data: {
+      labels: data.map(x => x.label),
+      datasets: [{ label: 'Avaliações', data: data.map(x => x.total),
+        backgroundColor: '#F07820', borderRadius: 4, borderSkipped: false }]
+    },
+    options: {
+      plugins: { legend: { display: false }, datalabels: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size:11, family:'Inter' } } },
+        y: { grid: { color:'#F4F4F6' }, ticks: { callback: v => fmt(v), font: { family:'Inter' } } }
+      }
+    }
+  });
+}
+
+// ── RANKING ───────────────────────────────────────────────────────────────────
+function renderRank(tbodyId, data, isTop) {
+  const tb = document.getElementById(tbodyId);
+  tb.innerHTML = '';
+  data.forEach((r, i) => {
+    const color = isTop ? '#22C55E' : '#EF4444';
+    const w = Math.max(6, (r.nps / 100) * 72);
+    tb.innerHTML += `<tr>
+      <td style="color:var(--muted);font-weight:600;">${i+1}</td>
+      <td style="font-weight:500;">${r.nome_curto}</td>
+      <td style="font-weight:700;color:${color}">${r.nps}%</td>
+      <td><span class="rt-bar" style="width:${w}px;background:${color};"></span></td>
+    </tr>`;
+  });
+}
+
+// ── APPLY FILTERS (endpoints que aceitam filtros) ─────────────────────────────
+async function applyFilters() {
+  const p = filterParams();
+  try {
+    const [bn, mensal, vol, ranking] = await Promise.all([
+      get('/big-numbers', p),
+      get('/nps-mensal',  p),
+      get('/volume-mensal', p),
+      get('/ranking-lojas', p),
+    ]);
+    renderBN(bn);
+    renderNpsMensal(mensal);
+    renderDist(bn);
+    renderStacked(mensal);
+    renderVol(vol);
+    renderRank('rank-top', ranking.top5, true);
+    renderRank('rank-bot', ranking.bot5, false);
+  } catch(e) {
+    console.error('Erro ao aplicar filtros:', e);
+  }
+}
+
+// ── CHARTS ESTÁTICOS (carregam uma vez, sem filtro) ───────────────────────────
+async function loadStaticCharts() {
+  try {
+    // Detratores por região
+    const regioes = await get('/detratores-regiao');
+    new Chart(document.getElementById('chartRegiao'), {
+      type: 'bar',
+      data: {
+        labels: regioes.map(r => r.regiao),
+        datasets: [{ label: '% Detratores', data: regioes.map(r => r.pct_detrator),
+          backgroundColor: regioes.map((_, i) => i===0?'#C0392B':i===1?'#EF4444':i<=3?'#F59E0B':'#FCA5A5'),
+          borderRadius: 4, borderSkipped: false }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, datalabels: { display: false } },
+        scales: {
+          x: { grid: { color:'#F4F4F6' }, ticks: { callback: v => v+'%', font: { family:'Inter' } } },
+          y: { grid: { display: false }, ticks: { font: { family:'Inter' } } }
+        }
+      }
+    });
+
+    // Volume por loja
+    const volLojas = await get('/volume-lojas');
+    const renderVolLojas = (id, data, color) => {
+      const c = document.getElementById(id);
+      const mx = Math.max(...data.map(x => x.total));
+      data.forEach(r => {
+        const pct = (r.total / mx * 100).toFixed(0);
+        c.innerHTML += `<div class="pb-wrap">
+          <div class="pb-row"><span>${r.nome_curto}</span><span style="font-weight:600;">${fmt(r.total)}</span></div>
+          <div class="pb"><div class="pb-fill" style="width:${pct}%;background:${color};"></div></div>
+        </div>`;
+      });
+    };
+    renderVolLojas('vol-top', volLojas.top5, '#D4600A');
+    renderVolLojas('vol-bot', volLojas.bot5, '#A1A1AA');
+
+    // Flag comparison
+    const flags = await get('/flag-comparison');
+    const flagRow = document.getElementById('flag-row');
+    ['REGULAR','TOCADORA'].forEach(f => {
+      const fd = flags[f];
+      flagRow.innerHTML += `<div class="flag-card ${f.toLowerCase()}">
+        <div class="flag-name">${f}</div>
+        <div class="flag-nps">${fd.nps}%</div>
+        <div class="flag-sub">NPS · ${fmt(fd.total)} avaliações</div>
+        <div class="pb-wrap"><div class="pb-row"><span style="color:var(--green)">Promotores</span><span>${fd.pct_promotor}%</span></div><div class="pb"><div class="pb-fill" style="width:${fd.pct_promotor}%;background:var(--green);"></div></div></div>
+        <div class="pb-wrap"><div class="pb-row"><span style="color:var(--yellow)">Neutros</span><span>${fd.pct_neutro}%</span></div><div class="pb"><div class="pb-fill" style="width:${Math.min(fd.pct_neutro*4,100)}%;background:var(--yellow);"></div></div></div>
+        <div class="pb-wrap"><div class="pb-row"><span style="color:var(--red)">Detratores</span><span>${fd.pct_detrator}%</span></div><div class="pb"><div class="pb-fill" style="width:${Math.min(fd.pct_detrator*8,100)}%;background:var(--red);"></div></div></div>
+      </div>`;
+    });
+
+    // Temas BERTopic
+    const temas = await get('/temas');
+    const temasF = temas.filter(t => t.categoria !== 'Outros/Inclassificável').sort((a,b) => b.pct - a.pct);
+    new Chart(document.getElementById('chartTemas'), {
+      type: 'bar',
+      data: {
+        labels: temasF.map(t => t.categoria),
+        datasets: [{ label: '% comentários', data: temasF.map(t => t.pct),
+          backgroundColor: ['#D4600A','#F07820','#7A3006','#E9955A','#C05010','#A03808','#F0A060'],
+          borderRadius: 4, borderSkipped: false }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, datalabels: { display: false } },
+        scales: {
+          x: { grid: { color:'#F4F4F6' }, ticks: { callback: v => v+'%', font: { family:'Inter' } } },
+          y: { grid: { display: false }, ticks: { font: { size:11, family:'Inter' } } }
+        }
+      }
+    });
+
+    // Comprimento médio
+    const comp = await get('/comprimento-comentarios');
+    const ordem = ['detrator','neutro','promotor'];
+    const compOrdenado = ordem.map(c => comp.find(x => x.classificacao === c));
+    new Chart(document.getElementById('chartComprimento'), {
+      type: 'bar',
+      data: {
+        labels: compOrdenado.map(x => x.classificacao.charAt(0).toUpperCase() + x.classificacao.slice(1)),
+        datasets: [
+          { label: 'Média',   data: compOrdenado.map(x => x.media),   backgroundColor: ['#EF4444','#EAB308','#22C55E'], borderRadius: 6, borderSkipped: false },
+          { label: 'Mediana', data: compOrdenado.map(x => x.mediana), backgroundColor: ['rgba(239,68,68,.3)','rgba(234,179,8,.3)','rgba(34,197,94,.3)'], borderRadius: 6, borderSkipped: false },
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: {
+          legend: { position: 'top', labels: { font: { family:'Inter', size:12 } } },
+          datalabels: { display: true, anchor:'end', align:'end', font: { size:11, weight:'600', family:'Inter' }, color:'#18181B', formatter: v => v + ' pal.' }
+        },
+        scales: {
+          x: { grid: { color:'#F4F4F6' }, ticks: { font: { family:'Inter' } }, max: 45 },
+          y: { grid: { display: false }, ticks: { font: { family:'Inter', size:13 } } }
+        },
+        layout: { padding: { right: 70 } }
+      },
+      plugins: [ChartDataLabels]
+    });
+
+    // Cobertura de comentários
+    const cobertura = await get('/cobertura-comentarios');
+    const cobOrder = ['detrator','neutro','promotor'];
+    const cobColors = { detrator:'#EF4444', neutro:'#EAB308', promotor:'#22C55E' };
+    const cobContainer = document.getElementById('cobertura-bars');
+    cobOrder.forEach(cls => {
+      const d = cobertura.find(x => x.classificacao === cls);
+      if (!d) return;
+      cobContainer.innerHTML += `<div class="pb-wrap" style="margin-bottom:14px;">
+        <div class="pb-row" style="font-size:13px;">
+          <span style="font-weight:600;color:${cobColors[cls]}">${cls.charAt(0).toUpperCase()+cls.slice(1)}</span>
+          <span style="font-weight:700;">${d.pct_com_comentario}%</span>
+        </div>
+        <div class="pb" style="height:10px;">
+          <div class="pb-fill" style="width:${d.pct_com_comentario}%;background:${cobColors[cls]};height:10px;border-radius:5px;"></div>
+        </div>
+      </div>`;
+    });
+    const det = cobertura.find(x => x.classificacao === 'detrator');
+    const prom = cobertura.find(x => x.classificacao === 'promotor');
+    document.getElementById('cobertura-insight').innerHTML =
+      `<strong>Insight:</strong> detratores comentam em <strong>${det?.pct_com_comentario}%</strong> das avaliações, enquanto promotores comentam em apenas <strong>${prom?.pct_com_comentario}%</strong>. Clientes insatisfeitos são significativamente mais propensos a deixar feedback textual.`;
+
+    // Categorias — aba Clusterização
+    const catInfo = {
+      'Preços e Experiência Geral': { kws:['preços','promoções','cashback','custo','acessíveis'], desc:'Comentários sobre preço, valor, promoções, descontos e sugestões de melhoria.' },
+      'Atendimento Positivo':       { kws:['atendimento','funcionária','simpática','prestativos'], desc:'Elogios ao atendimento — simpatia, prestatividade, rapidez.' },
+      'Qualidade dos Produtos':     { kws:['carne','gordura','produto','picanha','qualidade'], desc:'Qualidade, disponibilidade e sortimento dos produtos.' },
+      'Operações da Loja':          { kws:['caixa','fila','estacionamento','geladeira'], desc:'Infraestrutura, filas, manutenção de equipamentos.' },
+      'Marca Swift':                { kws:['Swift','marca','combo','fidelidade'], desc:'Engajamento e percepção com a marca Swift.' },
+      'Canal Digital':              { kws:['WhatsApp','app','site','pagamento'], desc:'Experiência com canais digitais.' },
+      'Elogios Gerais':             { kws:['parabéns','ótimos','amo','perfeito'], desc:'Elogios genéricos sem tema específico.' },
+      'Outros/Inclassificável':     { kws:['genérico','multi-tema','vago'], desc:'Comentários sem tema predominante — classe residual do HDBSCAN.' },
+    };
+    const grid = document.getElementById('category-grid');
+    temas.forEach(t => {
+      const info = catInfo[t.categoria] || {};
+      const outlier = t.categoria === 'Outros/Inclassificável';
+      grid.innerHTML += `<div class="cat-card" style="${outlier?'opacity:.65':''}">
+        <div class="cat-head"><div class="cat-name">${t.categoria}</div><div class="cat-pct">${t.pct}%</div></div>
+        <div class="cat-desc">${info.desc||''}</div>
+        <div class="cat-kws">${(info.kws||[]).map(k=>`<span class="cat-kw">${k}</span>`).join('')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;">${t.nps_perfil} · ${fmt(t.count)} comentários</div>
+      </div>`;
+    });
+
+    new Chart(document.getElementById('chartClusters'), {
+      type: 'bar',
+      data: {
+        labels: temas.map(t => t.categoria),
+        datasets: [{ label: '% comentários', data: temas.map(t => t.pct),
+          backgroundColor: temas.map(t => t.categoria==='Outros/Inclassificável'?'#D4D4D8':'#D4600A'),
+          borderRadius: 4, borderSkipped: false }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, datalabels: { display: false } },
+        scales: {
+          x: { grid: { color:'#F4F4F6' }, ticks: { callback: v => v+'%', font: { family:'Inter' } } },
+          y: { grid: { display: false }, ticks: { font: { size:12, family:'Inter' } } }
+        }
+      }
+    });
+
+  } catch(e) {
+    console.error('Erro ao carregar gráficos estáticos:', e);
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+applyFilters();
+loadStaticCharts();
+
+// ── IGUALA ALTURA DOS CARDS ───────────────────────────────────────────────────
+function matchCardHeights() {
+  const c1 = document.getElementById('card-nps-mensal');
+  const c2 = document.getElementById('card-dist');
+  if (!c1 || !c2) return;
+  c2.style.height = '';
+  const h = c1.getBoundingClientRect().height;
+  if (h > 0) c2.style.height = h + 'px';
+}
+setTimeout(matchCardHeights, 900);
+window.addEventListener('resize', () => { matchCardHeights(); });
+</script>
+</body>
+</html>
