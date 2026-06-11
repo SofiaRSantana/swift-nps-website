@@ -20,8 +20,8 @@ DATA_DIR   = BASE_DIR.parent.parent / "BasesDadosUtilizadas"
 FILE_NPS   = BASE_DIR / "nps.csv"
 FILE_LOJAS = BASE_DIR / "lojas.csv"
 
-app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+app = Flask(__name__)
+CORS(app)
 
 # ── Rota principal — serve o index.html ───────────────────────────────────────
 @app.route("/")
