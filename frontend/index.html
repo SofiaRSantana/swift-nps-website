@@ -281,12 +281,11 @@ nav button.active::after { transform: scaleX(1); }
     <div class="grid g21 gap">
       <div class="card" id="card-nps-mensal" style="overflow:hidden;">
         <div class="card-label">Média do NPS ao longo dos meses <span class="badge b-orange">Linha</span></div>
-        <div style="height:70px;">
-        <canvas id="chartNpsMensal"></canvas>
+        <canvas id="chartNpsMensal" height="75"></canvas>
       </div>
       <div class="card" id="card-dist" style="overflow:hidden; display:flex; flex-direction:column;">
         <div class="card-label">Distribuição Geral</div>
-        <div style="flex:1; min-height:280px;">
+        <div style="flex:1; min-height:0;">
           <canvas id="chartDist"></canvas>
         </div>
       </div>
@@ -397,7 +396,7 @@ nav button.active::after { transform: scaleX(1); }
   <div class="dec-card">
     <h3>3. Tratamento de Comentários Mistos</h3>
     <p>Classificados pelo <strong>sentimento dominante</strong>. Comentários mistos representam apenas <strong>0,3% — 627 casos</strong>.</p>
-    <ul><li>Maioria positiva → <strong>Promotor</strong></li><li>Empate → <strong>Neutro</strong></li><li>Maioria negativa → <strong>Detrator</strong></li></ul>
+    <ul><li>Maioria positiva → <strong>Promotor</strong></li><li>Empate → <strong>Neutro</strong></li></ul>
   </div>
   <div class="card">
     <div class="card-label">Resumo das Decisões</div>
@@ -686,6 +685,7 @@ async function applyFilters() {
 async function loadStaticCharts() {
   try {
     // Detratores por região
+    const regioes = await get('/detratores-regiao');
     const regioes = await get('/api/detratores-regiao');
     new Chart(document.getElementById('chartRegiao'), {
       type: 'bar',
@@ -706,6 +706,7 @@ async function loadStaticCharts() {
     });
 
     // Volume por loja
+    const volLojas = await get('/volume-lojas');
     const volLojas = await get('/api/volume-lojas');
     const renderVolLojas = (id, data, color) => {
       const c = document.getElementById(id);
@@ -722,6 +723,7 @@ async function loadStaticCharts() {
     renderVolLojas('vol-bot', volLojas.bot5, '#A1A1AA');
 
     // Flag comparison
+    const flags = await get('/flag-comparison');
     const flags = await get('/api/flag-comparison');
     const flagRow = document.getElementById('flag-row');
     ['REGULAR','TOCADORA'].forEach(f => {
@@ -737,6 +739,7 @@ async function loadStaticCharts() {
     });
 
     // Temas BERTopic
+    const temas = await get('/temas');
     const temas = await get('/api/temas');
     const temasF = temas.filter(t => t.categoria !== 'Outros/Inclassificável').sort((a,b) => b.pct - a.pct);
     new Chart(document.getElementById('chartTemas'), {
@@ -758,6 +761,7 @@ async function loadStaticCharts() {
     });
 
     // Comprimento médio
+    const comp = await get('/comprimento-comentarios');
     const comp = await get('/api/comprimento-comentarios');
     const ordem = ['detrator','neutro','promotor'];
     const compOrdenado = ordem.map(c => comp.find(x => x.classificacao === c));
@@ -786,6 +790,7 @@ async function loadStaticCharts() {
     });
 
     // Cobertura de comentários
+    const cobertura = await get('/cobertura-comentarios');
     const cobertura = await get('/api/cobertura-comentarios');
     const cobOrder = ['detrator','neutro','promotor'];
     const cobColors = { detrator:'#EF4444', neutro:'#EAB308', promotor:'#22C55E' };
