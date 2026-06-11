@@ -279,9 +279,10 @@ nav button.active::after { transform: scaleX(1); }
     </div>
 
     <div class="grid g21 gap">
-      <div class="card" id="card-nps-mensal" style="overflow:hidden;">
+      <div class="card" id="card-nps-mensal" style="overflow:hidden; display:flex; flex-direction:column;">
         <div class="card-label">Média do NPS ao longo dos meses <span class="badge b-orange">Linha</span></div>
-        <canvas id="chartNpsMensal" height="75"></canvas>
+        <div style="height:70px; position:relative;">
+        <canvas id="chartNpsMensal"></canvas>
       </div>
       <div class="card" id="card-dist" style="overflow:hidden; display:flex; flex-direction:column;">
         <div class="card-label">Distribuição Geral</div>
