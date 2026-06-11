@@ -270,7 +270,7 @@ FILE_NPS   = DATA_DIR / "Dados para o Grillo.xlsx"
 FILE_LOJAS = DATA_DIR / "Transacoes Lojas.xlsx"
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:8080", "http://127.0.0.1:8080"])
+CORS(app)
 
 # ── Carregamento e cache ──────────────────────────────────────────────────────
 _cache = {}
