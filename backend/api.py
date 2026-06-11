@@ -7,6 +7,7 @@ Serve a API de dados E o frontend estático na mesma porta.
 import re
 from pathlib import Path
 from collections import Counter
+import os
 
 import pandas as pd
 from flask import Flask, jsonify, request, send_from_directory
@@ -543,5 +544,6 @@ def cobertura_comentarios():
 
 
 if __name__ == "__main__":
-    print("✓ Swift NPS API rodando em http://localhost:5050")
-    app.run(debug=False, port=5050)
+    print("✓ Swift NPS API rodando em http://localhost:5000")
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
