@@ -470,10 +470,10 @@ nav button.active::after { transform: scaleX(1); }
 </div>
 
 <script>
-const API = '/api';
+const API = 'https://swift-nps-backend.onrender.com';
 
 // ── DIAGNÓSTICO INICIAL ───────────────────────────────────────────────────────
-fetch('/api/big-numbers')
+fetch('https://swift-nps-backend.onrender.com/api/big-numbers')
   .then(r => r.json())
   .then(d => console.log('✅ API OK:', d))
   .catch(e => {
